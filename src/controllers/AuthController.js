@@ -3,6 +3,12 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const authConfig = require('../config/auth');
 
+function generateToken(params = {}) {
+    return jwt.sign( params, authConfig.secret, {
+        expiresIn: 86400,
+    });
+}
+
 module.exports = function(app) {
 
     const AuthController = {
@@ -19,7 +25,12 @@ module.exports = function(app) {
 
                 const user = await User.create(req.body);
                 user.password = undefined;
-                res.json(user);
+                
+                res.status(200).json({ 
+                    user, 
+                    token: generateToken({ id: user.id })
+                });
+
             } catch (e) {
                 res.status(400).json({ error: e.message });
             } 
@@ -37,11 +48,10 @@ module.exports = function(app) {
 
             user.password = undefined;
 
-            const token = jwt.sign({ id: user.id }, authConfig.secret, {
-                expiresIn: 86400,
+            res.status(200).json({ 
+                user, 
+                token: generateToken({ id: user.id })
             });
-
-            res.status(200).json({ user, token });
         },
     }
 
