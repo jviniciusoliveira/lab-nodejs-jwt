@@ -1,5 +1,7 @@
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const authConfig = require('../config/auth');
 
 module.exports = function(app) {
 
@@ -33,7 +35,13 @@ module.exports = function(app) {
             if (! await bcrypt.compare(password, user.password))
                 return res.status(400).json({ error: 'Senha inválida!' });
 
-            res.status(200).json(user);
+            user.password = undefined;
+
+            const token = jwt.sign({ id: user.id }, authConfig.secret, {
+                expiresIn: 86400,
+            });
+
+            res.status(200).json({ user, token });
         },
     }
 
