@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const bcrypt = require('bcryptjs');
 
 module.exports = function(app) {
 
@@ -20,6 +21,19 @@ module.exports = function(app) {
             } catch (e) {
                 res.status(400).json({ error: e.message });
             } 
+        },
+
+        authenticate: async (req, res) => {
+            const { email, password } = req.body;
+            const user = await User.findOne({ email }).select('+password');
+
+            if (! user)
+                return res.status(400).json({ error: 'Usuário não encontrado!' });
+
+            if (! await bcrypt.compare(password, user.password))
+                return res.status(400).json({ error: 'Senha inválida!' });
+
+            res.status(200).json(user);
         },
     }
 
