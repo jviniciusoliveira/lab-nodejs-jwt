@@ -1,6 +1,9 @@
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypt = require('crypto');
+const mailer = require('../config/mailer');
+
 const authConfig = require('../config/auth');
 
 function generateToken(params = {}) {
@@ -53,6 +56,43 @@ module.exports = function(app) {
                 token: generateToken({ id: user.id })
             });
         },
+
+        forgetPassword: async (req, res) => {
+            const { email } = req.body;
+
+            try {
+                const user = await User.findOne({ email });
+
+                if (! user) 
+                    return res.status(400).json({ error: 'Usuário não encontrado!' });
+                
+                const token = crypt.randomBytes(20).toString('hex');
+
+                const now = new Date();
+                now.setHours(now.getHours() + 1);
+
+                await User.findByIdAndUpdate(user.id, {
+                    '$set': {
+                        passwordResetToken: token,
+                        passwordResetExpires: now,
+                    }
+                });
+
+                mailer.sendMail({
+                    to: email,
+                    from: 'jv@gmail.com',
+                    template: 'auth/forget-password',
+                    context: { token },
+                }, (err) => {
+                    if (err)
+                        return res.status(400).json({ error: 'Não foi possível enviar email de recuperação de senha. Tente novamente.' });
+
+                    return res.json();
+                });
+            } catch (error) {
+                res.status(400).json({ error: 'Erro. Tente novamente!' });
+            }
+        }
     }
 
     return AuthController;

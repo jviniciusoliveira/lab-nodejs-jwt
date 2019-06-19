@@ -10,10 +10,23 @@ const transport = nodemailer.createTransport({
     auth: { user, pass }
   });
 
+const handlebarOptions = {
+    viewEngine: {
+        extName: '.html',
+        partialsDir: './src/resource/mail/',
+        layoutsDir: './src/resource/mail/',
+        defaultLayout: '',
+    },
+    viewPath: './src/resource/mail/',
+    extName: '.html',
+};
+/* 
   transport.use('compile', hbs({
     viewEngine: 'handlebars',
     viewPath: path.resolve('./src/resource/mail/'),
     extName: '.html',
-  }));
+  })); */
 
-  module.exports = transport;
+transport.use('compile', hbs(handlebarOptions));
+
+module.exports = transport;
