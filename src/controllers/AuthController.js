@@ -43,7 +43,7 @@ module.exports = function(app) {
             const { email, password } = req.body;
             const user = await User.findOne({ email }).select('+password');
 
-            if (! user)
+            if (!user)
                 return res.status(400).json({ error: 'Usuário não encontrado!' });
 
             if (! await bcrypt.compare(password, user.password))
@@ -63,7 +63,7 @@ module.exports = function(app) {
             try {
                 const user = await User.findOne({ email });
 
-                if (! user) 
+                if (!user) 
                     return res.status(400).json({ error: 'Usuário não encontrado!' });
                 
                 const token = crypt.randomBytes(20).toString('hex');
@@ -92,7 +92,33 @@ module.exports = function(app) {
             } catch (error) {
                 res.status(400).json({ error: 'Erro. Tente novamente!' });
             }
-        }
+        },
+
+        resetPassword: async (req, res) => {
+            const { email, token, password } = req.body;
+
+            try {
+                const user = await User.findOne({ email }).select('+passwordResetToken passwordResetExpires');
+
+                if (!user) 
+                    return res.status(400).json({ error: 'Usuário não encontrado!' });
+
+                if (token !== user.passwordResetToken)
+                    return res.status(400).json({ error: 'Token inválido!' });
+
+                const now = new Date();
+
+                if (now > user.passwordResetExpires)
+                    return res.status(400).json({ error: 'Token Expirado! Favor gerar um novo.' });
+
+                user.password = password;
+                await user.save();
+
+                res.json({ success: true });
+            } catch (error) {
+                res.status(400).json({ error: 'Erro. Tente novamente!' });
+            }
+        },
     }
 
     return AuthController;
