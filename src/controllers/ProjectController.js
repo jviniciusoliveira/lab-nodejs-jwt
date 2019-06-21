@@ -8,7 +8,7 @@ module.exports = function(app) {
 
         index: async (req, res) => {
             try {
-                const projects = await Project.find().populate('user');
+                const projects = await Project.find().populate(['user', 'tasks']);
                 return res.json({ projects });
             } catch (error) {
                 return res.status(400).json({ error: error.message });
@@ -17,7 +17,7 @@ module.exports = function(app) {
 
         show: async (req, res) => {
             try {
-                const project = await Project.findById(req.params.projectId).populate('user');
+                const project = await Project.findById(req.params.projectId).populate(['user', 'tasks']);
                 return res.json({ project });    
             } catch (error) {
                 return res.status(400).json({ error: error.message });
@@ -26,7 +26,16 @@ module.exports = function(app) {
 
         store: async (req, res) => {
             try {
-                const project = await Project.create({ ...req.body, user: req.userId });
+                const { title, description, tasks } = req.body;
+                const project = await Project.create({ title, description, user: req.userId });
+
+                await Promise.all(tasks.map(async task => {
+                    const projectTask = await Task.create({ ...task, project: project._id });
+                    project.tasks.push(projectTask);
+                }));
+
+                await project.save();
+
                 return res.json({ project });
             } catch (error) {
                 return res.status(400).json({ error: error.message });
@@ -34,7 +43,27 @@ module.exports = function(app) {
         },
 
         update: async (req, res) => {
+            try {
+                const { title, description, tasks } = req.body;
+                const project = await Project.findByIdAndUpdate(req.params.projectId, { 
+                    title, 
+                    description
+                }, { new: true });
 
+                project.tasks = [];
+                await Task.deleteMany({ project: project._id });
+
+                await Promise.all(tasks.map(async task => {
+                    const projectTask = await Task.create({ ...task, project: project._id });
+                    project.tasks.push(projectTask);
+                }));
+
+                await project.save();
+
+                return res.json({ project });
+            } catch (error) {
+                return res.status(400).json({ error: error.message });
+            }
         },
 
         destroy: async (req, res) => {
