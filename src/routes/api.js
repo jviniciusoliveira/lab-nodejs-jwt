@@ -11,6 +11,9 @@ module.exports = function(app) {
     app.post('/reset-password', authController.resetPassword);
     app.post('/authenticate', authController.authenticate);
 
-    app.post('/projects', authMiddleware, projectController.index);
+    app.get('/projects', authMiddleware, projectController.index);
+    app.get('/projects/:projectId', authMiddleware, projectController.show);
+    app.post('/projects', authMiddleware, projectController.store);
+    app.delete('/projects/:projectId', authMiddleware, projectController.destroy);
 }
 
